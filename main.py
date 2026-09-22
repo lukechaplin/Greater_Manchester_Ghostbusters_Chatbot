@@ -6,7 +6,7 @@ from app.llm import LocalLLM
 
 def print_banner() -> None:
     print("=" * 60)
-    print("Ghostbusters Knowledge Assistant")
+    print("Dogs & Cats living together, Mass Hysteria!: a Ghostbusters Chatbot")
     print("Powered by Llama through Ollama")
     print("=" * 60)
     print("Ask questions about the Ghostbusters universe.")
