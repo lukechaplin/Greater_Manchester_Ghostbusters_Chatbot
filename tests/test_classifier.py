@@ -3,6 +3,8 @@ from typing import Any, cast
 from app.classifier import TopicClassifier
 
 # Tests currently use a fake LLM to simulate the behavior of the classifier without relying on external dependencies.
+# This test suite ensures that the TopicClassifier behaves correctly when given various responses from the LLM, 
+# including valid and invalid JSON, as well as handling Markdown code fences.
 
 class FakeLLM:
     def __init__(self, response: str) -> None:
