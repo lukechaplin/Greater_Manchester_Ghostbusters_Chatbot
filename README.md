@@ -10,7 +10,7 @@ The guide (PDF) is composed of scanned images so an OCR (Optical Character Recog
 
 The PDF is also cached at the same time and ingested using batch processing of the chunks generated to reduce failure rate during the embedding process into vectors and writing to the vector database (ChromaDB) instance.
 
-I have implmeneted caching of the guide so the ingestion process if it needs to be re-run will not need to trigger the OCR engine to read the PDF unless there has been a change to the file.
+I have implmeneted caching of the guide in the ingestion process so if it needs to be re-run it will not need to trigger the OCR engine to read the PDF unless there has been a change to the file.
 
 Also batch processing is used to ingest the Spirit Guide to check which chunks are already stored in ChromaDB and skip chunks that have already been successfully ingested and only generate embeddings only for missing chunks.
 
@@ -19,6 +19,11 @@ Also batch processing is used to ingest the Spirit Guide to check which chunks a
 - Python 3.11+
 - Ollama
 - Llama 3.1 8B
+- Tesseract OCR engine
+- pytest
+- chromadb
+- pytesseract
+- Pillow
 
 You first need to download the Ollama framework globally on to your machine so you can then pull and run models locally
 
@@ -51,15 +56,3 @@ To run the chatbot and ask questions:
 To run the tests that use pytest and a fake LLM and a fake classifier to simulate the behavior of the chatbot without relying on Llama having to be spun up
 
 `pytest -q`
-
-Command to run to ingest Tobins spirit guide and add it to the RAG vector database
-
-python ingest.py data/documents/tobin/Tobins_spirit_guide.pdf --force-ocr
-
-I recommend ChromaDB for the local vector database and Ollama's nomic-embed-text model for embeddings. Keep llama3.1:8b as the model that writes the answers; the embedding model has a separate job.
-
-We'll also make source priority an application-level rule, rather than relying on the LLM to remember it.
-
-For the first working version, I’d build local PDF ingestion and retrieval first, then add the Wiki importer. That gives us a complete RAG loop we can test without depending on an external website.
-
-One important detail: we should store the source name, document title, page number, and URL alongside every chunk. That lets the assistant identify where an answer came from and distinguish, for example, an RPG description from a film-continuity fact.
