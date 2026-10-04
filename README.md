@@ -1,6 +1,6 @@
 # Greater Manchester Ghostbusters Chatbot
 
-This is Ghostbusters AI chatbot to answer all your deep lore, equipment, spritual questions about spooks, spectres or ghosts within the Ghostbusters universe
+This is Ghostbusters AI chatbot to answer all your deep lore, equipment, spritual questions about spooks, spectres or ghosts within the Ghostbusters universe and general franchise questions
 
 It is powered by Meta's Llama 3.1 8B model via their Ollama framework and is designed to run locally saving compute and token usage and ensuring your data, prompts, and files never leave your device, preventing third-party data tracking or external training.
 

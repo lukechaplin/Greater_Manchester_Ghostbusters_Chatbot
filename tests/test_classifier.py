@@ -10,7 +10,7 @@ class FakeLLM:
     def __init__(self, response: str) -> None:
         self.response = response
 
-    def chat(self, messages, _temperature=None) -> str:
+    def chat(self, messages, temperature=None) -> str:
         return self.response
 
 
