@@ -60,7 +60,7 @@ def test_chatbot_rejects_out_of_scope_question() -> None:
         "What is the weather today?"
     )
 
-    assert "only answer questions related" in response
+    assert "only answer questions about" in response
     assert len(llm.calls) == 0
 
 
@@ -113,8 +113,7 @@ def test_chatbot_preserves_conversation_history() -> None:
     chatbot.answer(
         "Who portrays him?"
     )
-
-    assert len(chatbot.conversation_history) == 4
+    assert len(chatbot.history) == 4
 
     second_call_messages = llm.calls[1]["messages"]
 
@@ -142,4 +141,4 @@ def test_out_of_scope_question_does_not_modify_history() -> None:
         "Tell me about football."
     )
 
-    assert chatbot.conversation_history == []
+    assert chatbot.history == []
