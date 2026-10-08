@@ -7,3 +7,5 @@ __pycache__/
 .vscode/
 .idea/
 data/chroma/
+data/ocr_cache/
+logs/

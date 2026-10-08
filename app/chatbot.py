@@ -2,6 +2,8 @@
 from app.config import settings
 from app.knowledge_base import KnowledgeBase
 
+from app.exceptions import GhostbustersAppError
+
 
 ANSWER_SYSTEM_PROMPT = """
 You are the Ghostbusters Franchise Knowledge Assistant.
@@ -181,32 +183,36 @@ Do not invent source citations.
         if not user_message:
             return "Please enter a question."
 
-        # Step 1: Check whether the question is in scope.
-        classification = self.classifier.classify(
-            user_message
-        )
+        try:
 
-        if not classification.in_scope:
-            return (
-                "I'm sorry, but I can only answer questions "
-                "about the Ghostbusters franchise.\n"
-                f"Reason: {classification.reason}"
+            # Step 1: Check whether the question is in scope.
+            classification = self.classifier.classify(
+            user_message
             )
 
-        # Step 2: Retrieve relevant knowledge.
-        retrieved = []
-
-        if self.knowledge_base is not None:
-            try:
-                retrieved = self.knowledge_base.retrieve(
-                    user_message
+            if not classification.in_scope:
+                return (
+                    "I'm sorry, but I can only answer questions "
+                    "about the Ghostbusters franchise.\n"
+                    f"Reason: {classification.reason}"
                 )
 
-            except Exception as error:
-                print(
+            # Step 2: Retrieve relevant knowledge.
+            retrieved = []
+
+            if self.knowledge_base is not None:
+                try:
+                    retrieved = self.knowledge_base.retrieve(
+                        user_message
+                    )
+                except Exception as error:
+                    print(
                     "\n[Warning] Knowledge-base retrieval "
                     f"failed: {error}"
                 )
+
+        except GhostbustersAppError:
+                    raise
 
         # Step 3: Generate an answer.
         try:

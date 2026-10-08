@@ -3,6 +3,7 @@ from collections.abc import Iterable
 from ollama import Client
 
 from app.config import settings
+from app.exceptions import LLMError
 
     # Wrapper around a locally running Ollama model.
 
@@ -27,8 +28,8 @@ class LocalLLM:
       
         # Send messages to Ollama and return the response text.
     
-
-        response = self.client.chat(
+        try: 
+            response = self.client.chat(
             model=self.model_name,
             messages=list(messages),
             options={
@@ -39,5 +40,11 @@ class LocalLLM:
                 )
             },
         )
+            return response["message"]["content"].strip()
+            
+        except Exception as exc:
+            raise LLMError(
+            "Unable to generate a response from Ollama."
+            ) from exc
 
-        return response["message"]["content"].strip()
+        

@@ -4,9 +4,13 @@ from hashlib import sha256
 from pathlib import Path
 
 import chromadb
+import logging
+
 from ollama import Client
 
 from app.config import settings
+
+from app.exceptions import EmbeddingError, RetrievalError
 
 
 @dataclass
@@ -24,6 +28,11 @@ class KnowledgeBase:
     SOURCE_PRIORITY = ("tobin", "wiki", "web")
 
     def __init__(self) -> None:
+
+        self.logger = logging.getLogger(
+        "ghostbusters.knowledge_base"
+        )
+
         self.ollama = Client(host=settings.ollama_host)
 
         Path(settings.chroma_path).mkdir(
@@ -71,12 +80,37 @@ class KnowledgeBase:
     def embed(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings using Ollama."""
 
-        response = self.ollama.embed(
+        if not texts:
+            return []
+
+        try:
+            self.logger.debug(
+            "Generating embeddings for %d texts.",
+            len(texts),
+            )
+
+            response = self.ollama.embed(
             model=settings.embedding_model,
             input=texts,
-        )
+            )
 
-        return response["embeddings"]
+            embeddings = response["embeddings"]
+
+            self.logger.debug(
+            "Generated %d embeddings.",
+            len(embeddings),
+            )
+
+            return response["embeddings"]
+
+        except Exception as exc:
+            self.logger.exception(
+            "Embedding request failed."
+            )
+            raise EmbeddingError(
+            "Unable to generate embeddings using "
+            f"'{settings.embedding_model}'."
+        ) from exc
 
     def get_existing_ids(
         self,
@@ -220,7 +254,7 @@ class KnowledgeBase:
                 ids=batch_ids,
                 documents=batch_documents,
                 metadatas=batch_metadatas,
-                embeddings=embeddings,
+                embeddings=embeddings, # type: ignore
             )
 
             total_added += len(batch_documents)
@@ -247,12 +281,12 @@ class KnowledgeBase:
         Tobin's Spirit Guide is checked first, followed by
         the Ghostbusters Wiki and then web sources.
         """
+        try:
+            query_embedding = self.embed([question])[0]
 
-        query_embedding = self.embed([question])[0]
+            for source_type in self.SOURCE_PRIORITY:
 
-        for source_type in self.SOURCE_PRIORITY:
-
-            results = self.collection.query(
+                results = self.collection.query(
                 query_embeddings=[query_embedding],
                 n_results=limit_per_source,
                 where={"source_type": source_type},
@@ -263,14 +297,13 @@ class KnowledgeBase:
                 ],
             )
 
-            documents = results["documents"][0] # type: ignore
-            metadatas = results["metadatas"][0] # type: ignore
-            distances = results["distances"][0] # type: ignore
+                documents = results["documents"][0] # type: ignore
+                metadatas = results["metadatas"][0] # type: ignore
+                distances = results["distances"][0] # type: ignore
 
-            if documents:
-
-                return [
-                    RetrievedChunk(
+                if documents:
+                    return [
+                        RetrievedChunk(
                         text=document,
                         source_type=metadata["source_type"], # type: ignore
                         source_name=metadata["source_name"], # type: ignore
@@ -285,8 +318,20 @@ class KnowledgeBase:
                         distances,
                     )
                 ]
+                
+            return []
+        
+        except EmbeddingError:
+            raise
 
-        return []
+        except Exception as exc:
+            self.logger.exception(
+            "Knowledge-base retrieval failed."
+        )
+            raise RetrievalError(
+            "Unable to retrieve information "
+            "from the knowledge base."
+        ) from exc
 
     def count(self) -> int:
         """Return the total number of stored chunks."""

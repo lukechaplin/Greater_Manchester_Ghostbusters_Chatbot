@@ -1,15 +1,25 @@
 
+import logging
+
+from numpy import rint
 from ollama import ResponseError
 
 from app.llm import LocalLLM
 from app.classifier import TopicClassifier
 from app.chatbot import GhostbustersChatbot
+from app.exceptions import (
+    GhostbustersAppError,
+)
+from app.logging_config import configure_logging
 from app.knowledge_base import KnowledgeBase
 from app.config import settings
+from app.logging_config import configure_logging
 
 # App entry point. Initializes the chatbot and handles user input/output.
 
 def main() -> None:
+
+    logger = configure_logging()
 
     print("=" * 60)
 
@@ -91,7 +101,7 @@ def main() -> None:
                 chatbot.clear_history()
                 print("\nConversation history cleared.")
                 continue
-
+        
             print("\nGhostbusters Assistant: ", end="", flush=True)
 
             response = chatbot.respond(user_message)
@@ -106,6 +116,19 @@ def main() -> None:
             print("\n\nAssistant shutting down.")
             break
 
+        except GhostbustersAppError as exc:
+            logger.error(
+            "Application error: %s",
+            exc,
+        )
+
+            print()
+            print("Sorry, I couldn't complete that request.")
+            print(exc)
+            print(
+            "See logs/ghostbusters.log for more details."
+            )
+            
         except ResponseError as error:
             print(f"\nOllama response error: {error}")
 

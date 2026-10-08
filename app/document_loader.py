@@ -1,11 +1,15 @@
 
+from app.exceptions import DocumentLoadError 
 import hashlib
 import json
+import logging
 from io import BytesIO
 from pathlib import Path
 
+
 import pymupdf
 import pytesseract
+
 
 from PIL import Image, ImageOps
 
@@ -95,6 +99,7 @@ def get_cache_directory(
     cache_name = f"{pdf_hash[:16]}_{settings_hash}"
 
     return Path(cache_dir) / cache_name
+    
 
 
 def load_cached_page(
@@ -179,6 +184,11 @@ def load_pdf(
     page numbers.
     """
 
+    logger = logging.getLogger(
+    "ghostbusters.document_loader"
+    )
+    
+
     pdf_path = Path(path)
 
     if not pdf_path.exists():
@@ -205,20 +215,32 @@ def load_pdf(
     ocr_count = 0
     native_count = 0
 
+    logger.info(
+        "Starting PDF extraction: %s",
+        pdf_path,
+    )
+
+    logger.info(
+    "OCR cache directory: %s",
+    cache_path,
+    )
+
     print()
     print("Preparing PDF extraction...")
     print(f"PDF: {pdf_path.name}")
     print(f"Cache directory: {cache_path}")
 
-    with pymupdf.open(pdf_path) as pdf:
+    try:
 
-        total_pages = len(pdf)
+        with pymupdf.open(pdf_path) as pdf:
+
+            total_pages = len(pdf)
 
         print(f"Total PDF pages: {total_pages}")
         print()
 
         for page_number, page in enumerate(
-            pdf,
+            pdf, # type: ignore
             start=1,
         ):
 
@@ -237,6 +259,11 @@ def load_pdf(
                 extraction_method = page_data[
                     "extraction_method"
                 ]
+
+                logger.debug(
+                "Loaded page %d from OCR cache.",
+                page_number,
+                )
 
             else:
 
@@ -297,15 +324,37 @@ def load_pdf(
                     f"| Newly extracted: {processed_count}"
                 )
 
-    print()
-    print("PDF EXTRACTION SUMMARY")
-    print("----------------------")
-    print(f"Total PDF pages: {total_pages}")
-    print(f"Pages loaded from cache: {cached_count}")
-    print(f"Pages newly extracted: {processed_count}")
-    print(f"Pages processed using OCR: {ocr_count}")
-    print(f"Pages processed using native extraction: {native_count}")
-    print(f"Pages with extracted text: {len(pages)}")
-    print()
+        print()
+        print("PDF EXTRACTION SUMMARY")
+        print("----------------------")
+        print(f"Total PDF pages: {total_pages}")
+        print(f"Pages loaded from cache: {cached_count}")
+        print(f"Pages newly extracted: {processed_count}")
+        print(f"Pages processed using OCR: {ocr_count}")
+        print(f"Pages processed using native extraction: {native_count}")
+        print(f"Pages with extracted text: {len(pages)}")
+        print()
 
-    return pages
+        return pages
+
+    except pymupdf.FileDataError as exc:
+
+        logger.exception(
+        "Unable to open PDF: %s",
+        pdf_path,
+        )
+        
+        raise DocumentLoadError(
+        f"Unable to open PDF: {pdf_path}"
+        ) from exc
+    
+    except Exception as exc:
+
+        logger.exception(
+        "Unexpected error while processing PDF: %s",
+        pdf_path,
+        )
+
+        raise DocumentLoadError(
+        f"Failed to process PDF: {pdf_path}"
+        ) from exc
